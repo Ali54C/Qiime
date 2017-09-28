@@ -122,10 +122,7 @@ cat file_name|grep "....GTGCCAGC.GCCGCGGTAA" --color=always| head
 
 #Quality Filtering: Chimeras
 ###
-
-
-
-Using USEARCH 6.1 
+Using USEARCH 6.1 (Can also use UPARSE, but again it costs money)
 Performs reference based chimera detection, like ChimeraSlayer, but also can perform de novo chimera detection based upon abundances of input sequences.
 Chimeric sequences are expected to be in low frequency, so this allows for suspicious sequences to be double checked as chimeric if they don’t match a reference in a database. This is more important when dealing with novel populations.
 The result of identify_chimeric_seqs.py is a text file that identifies which sequences are chimeric.
@@ -158,37 +155,16 @@ This takes about an hour
 
 identify_chimeric_seqs.py -i slout/seqs.fna -m usearch61 -o usearch_chimeras -r gg_97_otus_4feb2011.fasta
 
-
-
-
-
-
-
-
-
-
-
-
-
 #Quality Filtering cont (filtering tables)
 ###
-Discard chimeric sequences
-ID chimeras: http://qiime.org/tutorials/chimera_checking.html
 
-filter_fasta.py -f All_map/slout_all/seqs.fna -o seq_chimera.filtered_1 -s Map_1/usearch_chimeracheck_1/chimeras.txt -n 
--f, --input_fasta_fp
-Path to the input fasta file
--o, --output_fasta_fp
-The output fasta filepath
--m, --otu_map
-An OTU map where sequences ids are those which should be retained.
--s, --seq_id_fp
-A list of sequence identifiers (or tab-delimited lines with a seq identifier in the first field) which should be retained.
--n, --negate
-Discard passed seq ids rather than keep passed seq ids. [default: False]
+Discard chimeric sequences by filtering all sequences ID as a chimera from the fasta file
+ID chimeras: http://qiime.org/tutorials/chimera_checking.html
+-n, --negate, Discard passed seq ids rather than keep passed seq ids. [default: False]
 ###
 
-filter_fasta.py -f All_map/slout_all/seqs.fna -o seq_chimera.filtered_1 -s Map_1/usearch_chimeracheck_1/chimeras.txt -n 
+filter_fasta.py -f All_map/slout_all/seqs.fna -o seq_chimera.filtered_1 -s Map_1/usearch_chimeracheck_1/chimeras.txt -n
+
 
 #Pick OTUs
 ###
@@ -214,24 +190,27 @@ Reference: http://qiime.org/documentation/file_formats.html#qiime-parameters
 pick_open_reference_otus.py -o otus_usearch61 -i seq_chimera.filtered_1.2.3 -p uc_fast_params.txt -m usearch61
 -i, --input_fps
 
+# Remove Singletons from Data Set
+filter_samples_from_otu_table.py -i otu_table_non_chimeric_minus_contaminants.biom -o final_otu_table_non_chimeric_minus_contaminants.biom -n 1
 
+#Remove OTUs observed in blanks
+###
+Filter by sample type, according to your mapping file, to get rid of reads which occur in your blank sample, thus are contamination:
+###
+filter_samples_from_otu_table.py –i otu_table_non_chimeric.biom -o otu_table_non_chimeric_blank_samples.biom -m map.txt -s "Sample_Type:Blank”
 
 ###
-Remove OTUs observed in blanks
-Remove singletons:
-Remove OTUs with only one sample sequence in them
-The pick_open_reference.py sequence creates OTU table excluding OTUs with fewer than 2 sequences and including OTU taxonomy assignments and picks representative sequences
+Now, filter out any singletons left when these reads have been removed:
+-n, --min_count = The minimum total observation count of an otu for that otu to be retained [default: 0]
 ###
-
-
-
+filter_otus_from_otu_table.py -i otu_table_non_chimeric_blank_samples.biom -o filtered_otu_table_blank_samples.biom -n 1
 
 #Summarize tables
 ###
 The final OTU table can then be summarized:
-biom summarize-table -i otus_usearch61/otu_table_mc2_w_tax.biom 
 You need to do this to get the minimum value of counts for core diversity analysis 
 ###
+biom summarize-table -i otus_usearch61/otu_table_mc2_w_tax.biom 
 
 #Diversity analysis
 ###
@@ -245,29 +224,24 @@ Rarefraction Curve
 -Beta
 Diversity at more than one dataset compared to each other (ie: comparing specie richness and eveness between places)
 PCoA plots
-###
 
-###
 Qiime defaults to genus (L6) taxa identification
-To get specie level (L7) identification, you have to create a parameter file to tell the program to do that. Just, know Qiime is'nt that accurate past the genus level
+To get specie level (L7) identification, you have to create a parameter file to tell the program to do that. Just, know Qiime isn't that accurate past the genus level, but then that's why we have metagenomics.
 Below is the parameter file I made to use with summarizing taxa in the core_diversity.py script
 Source:
 http://qiime.org/documentation/qiime_parameters_files.html
-
 Summarize_taxa:level 2,3,4,5,6,7
 ###
 
 core_diversity_analyses.py -o cdout_usearch61_yestree_paramL7 -i otus_usearch61/otu_table_mc2_w_tax_no_pynast_failures.biom -m All_map/map_16sdata.txt -e 30111 -t otus_usearch61/rep_set.tre -p L7taxa_param.txt
 
 make_emperor.py -i cdout_usearch61_yestree_paramL7/bdiv_even30111/weighted_unifrac_pc.txt -o cdout_usearch61_yestree_paramL7/bdiv_even30111/weighted_unifrac_emperor_pcoa_plot/ -m All_map/map_16sdata.txt 
+
 make_emperor.py -i cdout_usearch61_yestree_paramL7/bdiv_even30111/unweighted_unifrac_pc.txt -o cdout_usearch61_yestree_paramL7/bdiv_even30111/unweighted_unifrac_emperor_pcoa_plot/ -m All_map/map_16sdata.txt 
 
 ###
 So, at the end of this, you should have 
-OTU tables, phylogenetic tree
-otus_usearch61
-Taxa plots up to the specie level, alpha and beta diversity analysis
-cdout_usearch61_yestree_paramL7
+OTU tables, phylogenetic tree, Taxa plots up to the specie level, and alpha and beta diversity analysis
 ###
 
 
