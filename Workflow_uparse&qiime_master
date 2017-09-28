@@ -1,15 +1,15 @@
-#NOTE: For this workflow, I am starting with paired-end reads from an Illumina platform. When I get the reads,
-they are sorted by barcode, but not merged or quality trimmed. 
+###NOTE: For this workflow, I am starting with non paired-end reads from an Illumina platform. When I get the reads, they are sorted by barcode, but not merged or quality trimmed.###
 
-#Initial Quality Control using FastQC (downloaded version) -- want to see overall quality, make sure no samples are missing, etc.
+####Initial Quality Control using FastQC (downloaded version) -- want to see overall quality, make sure no samples are missing, etc.
 
-#Using UPARSE -- paired end sequences were merged  
+#Using UPARSE -- paired end sequences were merged### 
 ./usearch8.0.1517_i86osx32 -fastq_mergepairs R1_001.fastq -reverse R2_001.fastq -fastqout merged.fastq
 
 #Using UPARSE -- sequences were filtered for quality -- 0.5 to 0.75 is usually the max cutoff used. This is the number of expected errors. -- see UPARSE document for more information.
 ./usearch8.0.1517_i86osx32 -fastq_filter merged.fastq -fastaout merged_filtered.fasta -fastq_maxee 0.75
 
-#Using QIIME, sequences were renamed by sample and combined into single file. First validate your mapping file as you will need it to relabel the sequences and for later analyses in QIIME.
+###Using QIIME, sequences were renamed by sample and combined into single file. First validate your mapping file as you will need it to relabel the sequences and for later analyses in QIIME.
+
 validate mapping file: validate_mapping_file.py -m map.txt
 
 # to relabel and concatenate files in QIIME
@@ -17,7 +17,7 @@ add_qiime_labels.py -m map.txt -i MergedReads/ -c InputFileName -o MergedReads_q
 
 #primers were trimmed off both 5' (20bp) and 3' (30bp) ends using PRINSEQ:http://edwards.sdsu.edu/cgi-bin/prinseq/prinseq.cgi
 
-#To create OTU table in UPARSE (for additional documentation, go here:http://drive5.com/usearch/manual/uparse_pipeline.html)
+###To create OTU table in UPARSE (for additional documentation, go here:http://drive5.com/usearch/manual/uparse_pipeline.html)
 # 1. globally trim sequences (in this case to 400bp)
 ./usearch8.0.1517_i86osx32 -fastx_truncate in_file.fasta -trunclen 400 -fastaout out_file.fasta
 
@@ -41,56 +41,59 @@ add_qiime_labels.py -m map.txt -i MergedReads/ -c InputFileName -o MergedReads_q
 python ~/drive5_py/uc2otutab_mod.py in.uc > out.txt
 
 #####Now to QIIME: #####
-8. To assign taxonomy in QIIME, using RDP classifier at 80% confidence
+# 8. To assign taxonomy in QIIME, using RDP classifier at 80% confidence
 assign_taxonomy.py -i seqs.fasta -t ref_list.txt -r ref_seqs.fasta -m rdp -c 0.8 -o out/
 
-9. For continued analysis in QIIME_convert otu table to biom table
+#9. For continued analysis in QIIME_convert otu table to biom table
 biom convert -i otu_table.txt -o otutable.biom --table-type "otu table" 
 
-10. Add metadata (aka taxonomy names) to OTU table
+#10. Add metadata (aka taxonomy names) to OTU table
 biom add-metadata --sc-separated taxonomy --observation-header OTUID,taxonomy --observation-metadata-fp tax_assignments.txt -i otutable.biom -o otu_taxassign.biom
 
-11. Remove negative controls
+#11. Remove negative controls
 #I do this manually, by converting the .biom file to a text file, opening it in excel, then sorting the excel file
 by abundance in the negative controls. OTUs that meet the below criteria are deleted. Once finished, the negative control
 samples are deleted, then the text file is saved and converted back to a .biom file.
 
 biom convert -i HB2013euk_otu_taxassign.biom -o HB2013euk_otu_taxassign.txt -b --header-key taxonomy
 
-Criteria for removing OTUs in negative controls:
+### Criteria for removing OTUs in negative controls:
 1. present only in the negative control and no samples
 2. 10 or more times more abundant in negative control than in any one sample
 3. present in low numbers (<10) in negative control and at least one (though could be more) samples
+###
 
-12. Convert back to .biom
+#12. Convert back to .biom
 biom convert -i otu_taxassign_noneg.txt -o otu_taxassign_noneg.biom --table-type "otu table"
 
-13. To get # of sequences per sample
+#13. To get number of sequences per sample
 biom summarize-table -i otu_taxassign_noneg.biom -o otu_taxassign_noneg_summarytable.txt
 
-14. To get # of OTUs per sample
+#14. To get # of OTUs per sample
 biom summarize-table -i otu_taxassign_nonegs.biom -o otu_taxassign_nonegs_summarytable.txt
 
-15. Basic summary stats in QIIME -- when converting OTU table from UPARSE the taxonomy is not read appropriately,
-so you have to include a parameter file with this command to tell the script to read them as "characters"
+#15. Basic summary stats in QIIME -- when converting OTU table from UPARSE the taxonomy is not read appropriately, so you have to include a parameter file with this command to tell the script to read them as "characters" 
+
 summarize_taxa_through_plots.py -i otu_taxassign_noneg.biom -p string.txt -o HB2013euk_taxplots/ 
 
-16. Here are some additional QIIME scripts I have used for various reasons...
+#16. Here are some additional QIIME scripts I have used for various reasons...
 
 filter_samples_from_otu_table.py 
 compute_core_microbiome.py
 alpha_rarefaction.py 
 
-17. To convert .biom files to shared files for use in mothur
+#17. To convert .biom files to shared files for use in mothur
 make.shared(biom=HullEuk_filtered_merge_allships.biom)  
 venn(shared=HullEuk_filtered_merge_allships.shared, calc=sharedsobs)
 
-18. I have also converted .biom files for use in R
+#18. I have also converted .biom files for use in R
 #to import otu table into R, need this file, the location in macqiime is listed below
 source('/Users/katrinalohan/MacQIIME_1.8.0-20140103_OS10.6/macqiime/lib/python2.7/site-packages/qiime/support_files/R/loaddata.r')
 #the necessary function to reformat the OTU table into the "community dataset" required by vegan and picante
 #before proceeding, you have to make a few minor modifications to the otu table in text format -- open in excel -- remove the # before OTU ID, remove the taxonomy list, and remove the "converted from biom file" line -- then you should be able to use the next line to properly reformat the file
+
 otutable <- load.qiime.otu.table('/Users/katrinalohan/Rdirectory/otu1.txt')
+
 #to check that the file was imported as matrix, which is necessary for the program to read the file as numeric and not characters
 class(otutable)
 #assuming the output from that command is "matrix", you can now proceed with running the more specific analyses in R
