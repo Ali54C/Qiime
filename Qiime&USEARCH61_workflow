@@ -21,7 +21,7 @@ USEARCH61
 Is not included in the qiime package, and must be downloaded and put into the macqiime directory
 Is faster than ChimeraSlayer, and hasn’t caused me as many problems
 Is the more recent pipeline for chimera checking created by the teams that made uchime and chimeraSlayer
-The free version of USEARCH has a working memory limit of 3GB (the 6GB version costs 900$). So, the input files need to be split and processed separately before being recombined in larger projects, in order not to go over the USEARCH61 memory limit.
+The free version of USEARCH has a working memory limit of 3GB (the 6GB version costs 900$). So, the input files need to be split and processed separately before being recombined in larger projects, in order not to go over the USEARCH61 memory limit.Unless you have a small file size, in which case, no need to worry about that.
 ###
 
 #Raw Illumina Reads
@@ -39,7 +39,7 @@ https://www.bioinformatics.babraham.ac.uk/projects/download.html
 Qiime accepts only single end data (ie: forward primers), and you need to create a separate file for the barcode data
 There are scripts to joins the forward and reverse reads by joining overlapping reads. Merging reads depends on the sizes of the sequence fragments.
 Illumina read data are paired end (ie: forward and reverse primers)
-Fastq-join is the simplest way to join paired end reads. FLASH is also good, but doesn’t work well if the reads are highly overlapping. FLASH is designed to merge pairs of reads when the original DNA fragments are shorter than twice the length of reads. The resulting longer reads can significantly improve genome assemblies. UPARSE is also good.
+Fastq-join is the simplest way to join paired end reads. FLASH is also good, but doesn’t work well if the reads are highly overlapping. FLASH is designed to merge pairs of reads when the original DNA fragments are shorter than twice the length of reads. The resulting longer reads can significantly improve genome assemblies.
 https://expressionanalysis.github.io/ea-utils/
 ###
 
@@ -112,7 +112,7 @@ split_libraries_fastq.py -o slout -i prossessed_seq/reads.fastq -b processed_seq
 ###
 Primers are often removed from data sets, so that they do not appear more similar than they actually are (this is especially important if you are making a library or clusters using % identity, and you want high sensitivity)
 There’s a “LinkerPrimerSequence” in the mapping file, and you can check to see if primers were removed from your data using the “grep” function again.
-If you don’t have Geneius, you can do it by hand in Text edit, or use PRINSEQ to trim your sequences.
+If you don’t have Geneius, you can do it by hand in Text edit (if you're a masochist), or use PRINSEQ to trim your sequences.
 Replace ambiguous bases (anything that’s not ATCG) with “.” when you use the grep function to see if the primers are still there
 ###
 
@@ -172,7 +172,7 @@ Source
 http://qiime.org/scripts/pick_open_reference_otus.html
 http://qiime.org/1.8.0/tutorials/chimera_checking.html#usearch-6-1
 
-pick_open_reference_otus.py -o otus_usearch61 -i seq_chimera.filtered_1.2.3 -p uc_fast_params.txt -m usearch61
+pick_open_reference_otus.py -o otus_usearch61 -i seq_chimera.filtered_1 -p uc_fast_params.txt -m usearch61
 -i, --input_fps
 The input sequences filepath or comma-separated list of filepaths
 -o, --output_dir
@@ -184,7 +184,7 @@ Here, this parameter file tells the computer to allow sequences to match the ref
 Reference: http://qiime.org/documentation/file_formats.html#qiime-parameters 
 ###
 
-pick_open_reference_otus.py -o otus_usearch61 -i seq_chimera.filtered_1.2.3 -p uc_fast_params.txt -m usearch61
+pick_open_reference_otus.py -o otus_usearch61 -i seq_chimera.filtered_1 -p uc_fast_params.txt -m usearch61
 -i, --input_fps
 
 # Remove Singletons from Data Set
