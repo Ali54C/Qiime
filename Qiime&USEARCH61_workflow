@@ -12,6 +12,8 @@ Summarize tables
 Diversity analysis
 ###
 
+#Note, the file names might not be consistent, as I pulled this together from a couple different projects, and might have missed relabling some
+
 ### Notes on USEARCH61
 The method I used for chimera checking during quality filtering was USEARCH61
 USEARCH61
