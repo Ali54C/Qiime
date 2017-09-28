@@ -168,19 +168,54 @@ Remove OTUs observed in blanks
 Remove singletons:
 Remove OTUs with only one sample sequence in them
 The pick_open_reference.py sequence creates OTU table excluding OTUs with fewer than 2 sequences and including OTU taxonomy assignments and picks representative sequences
-Summarize Tables
 ###
 
 
 
-Discard chimeric OTUs
-Remove OTUs observed in blanks
-Remove singletons
-Summarize tables
-Diversity analysis
 
+#Summarize tables
+###
+The final OTU table can then be summarized:
+biom summarize-table -i otus_usearch61/otu_table_mc2_w_tax.biom 
+You need to do this to get the minimum value of counts for core diversity analysis 
+###
 
+#Diversity analysis
+###
+-Alpha
+Diversity in one dataset (ie: specie richness and evenness at one place) 
+Several measures of diversity possible with alpha_rarefaction.py
+Common measures include Chao1 (estimator of richness), observed species (observed richness), Shannon index (estimates richness and evenness), Phylogenetic Diversity (how taxonomically diverse a sample is), Simpson index (evenness/dominance)
+First create a parameters file listing the measures you want:
+echo alpha_diversity:metricschao1,observed_species,shannon,PD_whole_tree > alpha_params.txt
+Rarefraction Curve
+-Beta
+Diversity at more than one dataset compared to each other (ie: comparing specie richness and eveness between places)
+PCoA plots
+###
 
+###
+Qiime defaults to genus (L6) taxa identification
+To get specie level (L7) identification, you have to create a parameter file to tell the program to do that. Just, know Qiime is'nt that accurate past the genus level
+Below is the parameter file I made to use with summarizing taxa in the core_diversity.py script
+Source:
+http://qiime.org/documentation/qiime_parameters_files.html
+
+Summarize_taxa:level 2,3,4,5,6,7
+###
+
+core_diversity_analyses.py -o cdout_usearch61_yestree_paramL7 -i otus_usearch61/otu_table_mc2_w_tax_no_pynast_failures.biom -m All_map/map_16sdata.txt -e 30111 -t otus_usearch61/rep_set.tre -p L7taxa_param.txt
+
+make_emperor.py -i cdout_usearch61_yestree_paramL7/bdiv_even30111/weighted_unifrac_pc.txt -o cdout_usearch61_yestree_paramL7/bdiv_even30111/weighted_unifrac_emperor_pcoa_plot/ -m All_map/map_16sdata.txt 
+make_emperor.py -i cdout_usearch61_yestree_paramL7/bdiv_even30111/unweighted_unifrac_pc.txt -o cdout_usearch61_yestree_paramL7/bdiv_even30111/unweighted_unifrac_emperor_pcoa_plot/ -m All_map/map_16sdata.txt 
+
+###
+So, at the end of this, you should have 
+OTU tables, phylogenetic tree
+otus_usearch61
+Taxa plots up to the specie level, alpha and beta diversity analysis
+cdout_usearch61_yestree_paramL7
+###
 
 
 
