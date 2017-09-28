@@ -1,2 +1,2 @@
 # Qiime
-workflow from past projects using QIIME
+Workflow from past projects using QIIME
