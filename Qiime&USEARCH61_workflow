@@ -1,10 +1,8 @@
 ### QIIME Workflow Overview
 Raw Illumina Reads
 Combine Paired end Reads
-
 Make Mapping File
 Make Barcode File 
-
 Split libraries
 Quality Filtering: Chimeras
 Quality Filtering cont (filtering tables)
