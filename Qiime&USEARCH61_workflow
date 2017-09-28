@@ -1,7 +1,10 @@
 ### QIIME Workflow Overview
+Raw Illumina Reads
+Combine Paired end Reads
+
 Make Mapping File
 Make Barcode File 
-Combine Paired end Reads
+
 Split libraries
 Quality Filtering: Chimeras
 Quality Filtering cont (filtering tables)
@@ -15,38 +18,62 @@ Diversity analysis
 #Note, the file names might not be consistent, as I pulled this together from a couple different projects, and might have missed relabling some
 
 ### Notes on USEARCH61
-The method I used for chimera checking during quality filtering was USEARCH61
-USEARCH61
+The method I used for chimera checking and OTU creation during quality filtering was USEARCH61
+USEARCH61 
 Is not included in the qiime package, and must be downloaded and put into the macqiime directory
 Is faster than ChimeraSlayer, and hasn’t caused me as many problems
 Is the more recent pipeline for chimera checking created by the teams that made uchime and chimeraSlayer
 The free version of USEARCH has a working memory limit of 3GB (the 6GB version costs 900$). So, the input files need to be split and processed separately before being recombined in larger projects, in order not to go over the USEARCH61 memory limit.
 ###
 
+#Raw Illumina Reads
+###
+You should have three files
+File one of sequence data (usually the forward reads)
+Barcode information for each sequence (which sequence it belongs to)
+File two of sequence data (usually the reverse reads)
+To get a sense of overall quality of data, run the reads through FastQC
+https://www.bioinformatics.babraham.ac.uk/projects/download.html
+###
+
+#Combine Paired end Reads
+###
+Qiime accepts only single end data (ie: forward primers), and you need to create a separate file for the barcode data
+There are scripts to joins the forward and reverse reads by joining overlapping reads. Merging reads depends on the sizes of the sequence fragments.
+Illumina read data are paired end (ie: forward and reverse primers)
+Fastq-join is the simplest way to join paired end reads. FLASH is also good, but doesn’t work well if the reads are highly overlapping. FLASH is designed to merge pairs of reads when the original DNA fragments are shorter than twice the length of reads. The resulting longer reads can significantly improve genome assemblies. UPARSE is also good, but costs money.
+https://expressionanalysis.github.io/ea-utils/
+###
 
 #Make Mapping File
-
-validate_mapping_file.py -m map_16sdata.txt -o vmf
-
-#Make Barcode File 
 ###
-Use the grep function to search for the forward and reverse barcodes to determine barcode orientation
+#SampleID
+BarcodeSequences
+LinkerPrimerSequences 
+However many columns of meta data you want
+Last column: Description
+Save as tab-delimited text file if you're making it in excell
+###
+
+validate_mapping_file.py -m map_16sdata.txt -o vmf-map/
+
+#Make Barcode File
+###
+Use the grep function to search for the forward and reverse barcodes to determine barcode orientation. This is important for splitting the libraries.
 Check to see where the barcodes are in the files, by using grep to search for the barcodes and color the files
-###
-
-cat fullSequenceData.fasta |gret "CAGTTCAT"| wc -l
-cat fullSequenceData.fasta |gret "ATGAACTG"| wc -l 
-
-cat fullSequenceData.fasta |gret "CAGTTCAT" --color=always| head
-
-###
+Barcodes not in the mapping file will be excluded
 Open the fastq sequence file in TextEdit to see its format
-make sure the full.fasta does not use > instead of @. 
-To fix the file’s format, open it in TextEdit and add the @ using find and replace
+make sure the full.fasta does not use > instead of @. To fix the file’s format, open it in TextEdit and add the @ using find and replace
 ###
 
+cat fullSequenceData.fasta |grep "CAGTTCAT"| wc -l
+cat fullSequenceData.fasta |grep "ATGAACTG"| wc -l
+
+cat fullSequenceData.fasta |grep "CAGTTCAT" --color=always| head
+cat fullSequenceData.fasta |grep "ATGAACTG" --color=always| head
+
 ###
-Barcodes can be extracted and put into its own file using the “extract_barcodes.py” script
+If unknown, barcodes can be extracted and put into its own file using the “extract_barcodes.py” script
 -f, --fastq1
 Input fastq filepath. This file is considered read 1.
 -c, --input_type
@@ -59,16 +86,15 @@ Change this to 8bp
 Filepath of mapping file. NOTE: Must contain a header line indicating SampleID in the first column and BarcodeSequence in the second, LinkerPrimerSequence in the third and a ReversePrimer column before the final Description column. Needed for –attempt_read_orientation option. [default: None]
 -o 
 In the output directory, there will be fastq files (barcode file, and one or two reads files)
-
-note here the barcode length is 8bp
 ###
 
 extract_barcodes.py -f fullSequenceData.fasta -o processed_seq/ -m map_16sdata.txt -l 8
 
-#Combine Paired end Reads
-
 #Split libraries
 ###
+ie: match barcodes in map file to sequences, and get rid of sequences that don’t match your barcodes
+Check your barcodes orientation before splitting libraries. If your samples have no barcodes, you can still analyze them using only alpha diversity. See Qiime documentation notes on making a maping file -b.
+
 split_libraries_fastq.py
 -i, --sequence_read_fps
 The forward and reverse sequence read fastq files (comma-separated)
@@ -84,8 +110,21 @@ Change this to 8, because out barcodes are 8bp long
 
 split_libraries_fastq.py -o slout -i prossessed_seq/reads.fastq -b processed_seq/barcodes.fastq --barcode_type 8 -m map_16sdata.txt
 
+#Cleaning data of primers
+###
+Primers are often removed from data sets, so that they do not appear more similar than they actually are (this is especially important if you are making a library or clusters using % identity, and you want high sensitivity)
+There’s a “LinkerPrimerSequence” in the mapping file, and you can check to see if primers were removed from your data using the “grep” function again.
+If you don’t have Geneius, you can do it by hand in Text edit, or use PRINSEQ to trim your sequences.
+Replace ambiguous bases (anything that’s not ATCG) with “.” when you use the grep function to see if the primers are still there
+###
+
+cat file_name|grep "....GTGCCAGC.GCCGCGGTAA" --color=always| head 
+
 #Quality Filtering: Chimeras
 ###
+
+
+
 Using USEARCH 6.1 
 Performs reference based chimera detection, like ChimeraSlayer, but also can perform de novo chimera detection based upon abundances of input sequences.
 Chimeric sequences are expected to be in low frequency, so this allows for suspicious sequences to be double checked as chimeric if they don’t match a reference in a database. This is more important when dealing with novel populations.
@@ -118,6 +157,18 @@ This takes about an hour
 ###
 
 identify_chimeric_seqs.py -i slout/seqs.fna -m usearch61 -o usearch_chimeras -r gg_97_otus_4feb2011.fasta
+
+
+
+
+
+
+
+
+
+
+
+
 
 #Quality Filtering cont (filtering tables)
 ###
