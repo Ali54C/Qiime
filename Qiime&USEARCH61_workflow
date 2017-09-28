@@ -1,0 +1,186 @@
+### QIIME Workflow Overview
+Make Mapping File
+Make Barcode File 
+Combine Paired end Reads
+Split libraries
+Quality Filtering: Chimeras
+Quality Filtering cont (filtering tables)
+Discard chimeric OTUs
+Remove OTUs observed in blanks
+Remove singletons
+Summarize tables
+Diversity analysis
+###
+
+### Notes on USEARCH61
+The method I used for chimera checking during quality filtering was USEARCH61
+USEARCH61
+Is not included in the qiime package, and must be downloaded and put into the macqiime directory
+Is faster than ChimeraSlayer, and hasn’t caused me as many problems
+Is the more recent pipeline for chimera checking created by the teams that made uchime and chimeraSlayer
+The free version of USEARCH has a working memory limit of 3GB (the 6GB version costs 900$). So, the input files need to be split and processed separately before being recombined in larger projects, in order not to go over the USEARCH61 memory limit.
+###
+
+
+#Make Mapping File
+
+validate_mapping_file.py -m map_16sdata.txt -o vmf
+
+#Make Barcode File 
+###
+Use the grep function to search for the forward and reverse barcodes to determine barcode orientation
+Check to see where the barcodes are in the files, by using grep to search for the barcodes and color the files
+###
+
+cat fullSequenceData.fasta |gret "CAGTTCAT"| wc -l
+cat fullSequenceData.fasta |gret "ATGAACTG"| wc -l 
+
+cat fullSequenceData.fasta |gret "CAGTTCAT" --color=always| head
+
+###
+Open the fastq sequence file in TextEdit to see its format
+make sure the full.fasta does not use > instead of @. 
+To fix the file’s format, open it in TextEdit and add the @ using find and replace
+###
+
+###
+Barcodes can be extracted and put into its own file using the “extract_barcodes.py” script
+-f, --fastq1
+Input fastq filepath. This file is considered read 1.
+-c, --input_type
+Specify the input type. barcode_single_end: Input is a single fastq file, that starts with the barcode sequence. [default: barcode_single_end]
+As we saw before using grep, this data is single end
+-l, --bc1_len
+Specify the length, in base pairs, of barcode 1. This applies to the –fastq1 file and all options specified by –input_type [default: 6]
+Change this to 8bp
+-m, --mapping_fp
+Filepath of mapping file. NOTE: Must contain a header line indicating SampleID in the first column and BarcodeSequence in the second, LinkerPrimerSequence in the third and a ReversePrimer column before the final Description column. Needed for –attempt_read_orientation option. [default: None]
+-o 
+In the output directory, there will be fastq files (barcode file, and one or two reads files)
+
+note here the barcode length is 8bp
+###
+
+extract_barcodes.py -f fullSequenceData.fasta -o processed_seq/ -m map_16sdata.txt -l 8
+
+#Combine Paired end Reads
+
+#Split libraries
+###
+split_libraries_fastq.py
+-i, --sequence_read_fps
+The forward and reverse sequence read fastq files (comma-separated)
+-o, --output_dir
+Directory to store output files
+-m, --mapping_fp
+Metadata mapping file
+-b, --barcode_type
+The type of barcode used. This can be an integer, e.g. 6 for length 6 barcodes, or golay_12 for golay error-correcting barcodes. Error correction will only be applied for golay_12 barcodes [default: golay_12]
+--barcode_type # if the barcodes are not 12 base pairs, where # is the size of the barcodes. 
+Change this to 8, because out barcodes are 8bp long
+###
+
+split_libraries_fastq.py -o slout -i prossessed_seq/reads.fastq -b processed_seq/barcodes.fastq --barcode_type 8 -m map_16sdata.txt
+
+#Quality Filtering: Chimeras
+###
+Using USEARCH 6.1 
+Performs reference based chimera detection, like ChimeraSlayer, but also can perform de novo chimera detection based upon abundances of input sequences.
+Chimeric sequences are expected to be in low frequency, so this allows for suspicious sequences to be double checked as chimeric if they don’t match a reference in a database. This is more important when dealing with novel populations.
+The result of identify_chimeric_seqs.py is a text file that identifies which sequences are chimeric.
+You then must filter your sequences to exclude these chimeric sequences
+Sources:
+http://qiime.org/scripts/identify_chimeric_seqs.html
+http://qiime.org/1.8.0/tutorials/chimera_checking.html#usearch-6-1
+
+Download usearch61
+https://groups.google.com/forum/#!topic/qiime-forum/fXtD1CfsqMA
+Download greengenes reference database for usearch
+https://groups.google.com/forum/#!topic/qiime-forum/Qkprd1mR7c0
+Rep_set/gg_97_otus_4feb2011.fasta
+Put Usearch61 into correct macqiime folder, so that it is in your PATH
+/macqiime/bin/usearch61
+Use identify_chimeric_seq.py script
+http://qiime.org/1.8.0/tutorials/chimera_checking.html#usearch-6-1
+
+Input sequences should be demultiplexed sequences (e.g. output of split_libraries.py) that are not already clustered.
+The reference database should not be aligned.
+The reference sequences need to be in the same orientation as the query sequences. Use adjust_seq_orientation.py to reverse complement your reads if needed.
+Chimera checking should be done first, followed by filtering chimeras out of the input reads, and these filtered sequences can then be clustered with pick_otus.py.
+
+identify_chimeric_seqs.py -i slout/seqs.fna -m usearch61 -o usearch_chimeras -r gg_97_otus_4feb2011.fasta 
+-i input sequences from split libraries
+-m chimera detection method Chimera detection method. Choices: blast_fragments or ChimeraSlayer or usearch61. [default:ChimeraSlayer]
+-r reference sequences Path to reference sequences (used to build a blast db when method blast_fragments or reference database for usearch61). [default: None; REQUIRED when method blast_fragments if no blast_db is provided, suppress requirement for usearch61 with –suppress_usearch61_ref;]
+This takes about an hour
+###
+
+identify_chimeric_seqs.py -i slout/seqs.fna -m usearch61 -o usearch_chimeras -r gg_97_otus_4feb2011.fasta
+
+#Quality Filtering cont (filtering tables)
+###
+Discard chimeric sequences
+ID chimeras: http://qiime.org/tutorials/chimera_checking.html
+
+filter_fasta.py -f All_map/slout_all/seqs.fna -o seq_chimera.filtered_1 -s Map_1/usearch_chimeracheck_1/chimeras.txt -n 
+-f, --input_fasta_fp
+Path to the input fasta file
+-o, --output_fasta_fp
+The output fasta filepath
+-m, --otu_map
+An OTU map where sequences ids are those which should be retained.
+-s, --seq_id_fp
+A list of sequence identifiers (or tab-delimited lines with a seq identifier in the first field) which should be retained.
+-n, --negate
+Discard passed seq ids rather than keep passed seq ids. [default: False]
+###
+
+filter_fasta.py -f All_map/slout_all/seqs.fna -o seq_chimera.filtered_1 -s Map_1/usearch_chimeracheck_1/chimeras.txt -n 
+
+#Pick OTUs
+###
+Since USEARCH61 was used to pick the chimeras, qiime recommends using USEARCH61 again to pick the OTUs 
+USEARCH61 can be used as an OTU picking method in qiime for picking open references
+This step takes a while (6+hrs), so you might want to run it over night
+Source
+http://qiime.org/scripts/pick_open_reference_otus.html
+http://qiime.org/1.8.0/tutorials/chimera_checking.html#usearch-6-1
+
+pick_open_reference_otus.py -o otus_usearch61 -i seq_chimera.filtered_1.2.3 -p uc_fast_params.txt -m usearch61
+-i, --input_fps
+The input sequences filepath or comma-separated list of filepaths
+-o, --output_dir
+The output directory
+-m, --otu_picking_method
+The OTU picking method to use for reference and de novo steps. Passing usearch61, for example, means that usearch61 will be used for the de novo steps and usearch61_ref will be used for reference steps. [default: uclust]
+-p uc_fast_params.txt 
+Here, this parameter file tells the computer to allow sequences to match the reference database if either their forward or reverse orientation matches to a reference sequence
+Reference: http://qiime.org/documentation/file_formats.html#qiime-parameters 
+###
+
+pick_open_reference_otus.py -o otus_usearch61 -i seq_chimera.filtered_1.2.3 -p uc_fast_params.txt -m usearch61
+-i, --input_fps
+
+
+
+###
+Remove OTUs observed in blanks
+Remove singletons:
+Remove OTUs with only one sample sequence in them
+The pick_open_reference.py sequence creates OTU table excluding OTUs with fewer than 2 sequences and including OTU taxonomy assignments and picks representative sequences
+Summarize Tables
+###
+
+
+
+Discard chimeric OTUs
+Remove OTUs observed in blanks
+Remove singletons
+Summarize tables
+Diversity analysis
+
+
+
+
+
+
