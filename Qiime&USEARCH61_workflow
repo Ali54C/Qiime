@@ -39,7 +39,7 @@ https://www.bioinformatics.babraham.ac.uk/projects/download.html
 Qiime accepts only single end data (ie: forward primers), and you need to create a separate file for the barcode data
 There are scripts to joins the forward and reverse reads by joining overlapping reads. Merging reads depends on the sizes of the sequence fragments.
 Illumina read data are paired end (ie: forward and reverse primers)
-Fastq-join is the simplest way to join paired end reads. FLASH is also good, but doesn’t work well if the reads are highly overlapping. FLASH is designed to merge pairs of reads when the original DNA fragments are shorter than twice the length of reads. The resulting longer reads can significantly improve genome assemblies. UPARSE is also good, but costs money.
+Fastq-join is the simplest way to join paired end reads. FLASH is also good, but doesn’t work well if the reads are highly overlapping. FLASH is designed to merge pairs of reads when the original DNA fragments are shorter than twice the length of reads. The resulting longer reads can significantly improve genome assemblies. UPARSE is also good.
 https://expressionanalysis.github.io/ea-utils/
 ###
 
@@ -120,7 +120,7 @@ cat file_name|grep "....GTGCCAGC.GCCGCGGTAA" --color=always| head
 
 #Quality Filtering: Chimeras
 ###
-Using USEARCH 6.1 (Can also use UPARSE, but again it costs money)
+Using USEARCH 6.1 
 Performs reference based chimera detection, like ChimeraSlayer, but also can perform de novo chimera detection based upon abundances of input sequences.
 Chimeric sequences are expected to be in low frequency, so this allows for suspicious sequences to be double checked as chimeric if they don’t match a reference in a database. This is more important when dealing with novel populations.
 The result of identify_chimeric_seqs.py is a text file that identifies which sequences are chimeric.
@@ -162,7 +162,6 @@ ID chimeras: http://qiime.org/tutorials/chimera_checking.html
 ###
 
 filter_fasta.py -f All_map/slout_all/seqs.fna -o seq_chimera.filtered_1 -s Map_1/usearch_chimeracheck_1/chimeras.txt -n
-
 
 #Pick OTUs
 ###
