@@ -41,6 +41,9 @@ There are scripts to joins the forward and reverse reads by joining overlapping 
 Illumina read data are paired end (ie: forward and reverse primers)
 Fastq-join is the simplest way to join paired end reads. FLASH is also good, but doesn’t work well if the reads are highly overlapping. FLASH is designed to merge pairs of reads when the original DNA fragments are shorter than twice the length of reads. The resulting longer reads can significantly improve genome assemblies.
 https://expressionanalysis.github.io/ea-utils/
+
+Here's the documentation for using fastq-join in QIIME
+http://qiime.org/scripts/join_paired_ends.html
 ###
 
 #Make Mapping File
